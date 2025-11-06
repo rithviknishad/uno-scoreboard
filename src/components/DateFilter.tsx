@@ -4,27 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarBlank } from '@phosphor-icons/react';
-import { getDateRangeLabel } from '@/lib/stats';
+import { getDateRangeForPreset } from '@/lib/stats';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface DateFilterProps {
-  preset: DateFilterPreset;
-  onPresetChange: (preset: DateFilterPreset) => void;
-  customStart?: Date;
-  customEnd?: Date;
-  onCustomRangeChange: (start: Date | undefined, end: Date | undefined) => void;
+  since: string | null;
+  till: string | null;
 }
 
-export function DateFilter({
-  preset,
-  onPresetChange,
-  customStart,
-  customEnd,
-  onCustomRangeChange,
-}: DateFilterProps) {
+export function DateFilter({ since, till }: DateFilterProps) {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [tempStart, setTempStart] = useState<Date | undefined>(customStart);
-  const [tempEnd, setTempEnd] = useState<Date | undefined>(customEnd);
+  const [tempStart, setTempStart] = useState<Date | undefined>(
+    since ? new Date(since) : undefined
+  );
+  const [tempEnd, setTempEnd] = useState<Date | undefined>(
+    till ? new Date(till) : undefined
+  );
 
   const presets: { value: DateFilterPreset; label: string }[] = [
     { value: 'all-time', label: 'All Time' },
@@ -35,32 +31,68 @@ export function DateFilter({
     { value: 'last-year', label: 'Last Year' },
   ];
 
+  const updateQueryParams = (newSince: string | null, newTill: string | null) => {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (newSince) {
+      params.set('since', newSince);
+    } else {
+      params.delete('since');
+    }
+    
+    if (newTill) {
+      params.set('till', newTill);
+    } else {
+      params.delete('till');
+    }
+    
+    const newUrl = params.toString() 
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    
+    window.history.pushState({}, '', newUrl);
+    // Trigger a re-render by dispatching a custom event
+    window.dispatchEvent(new Event('popstate'));
+  };
+
   const handleApplyCustomRange = () => {
     if (tempStart && tempEnd) {
-      onCustomRangeChange(tempStart, tempEnd);
-      onPresetChange('custom');
+      updateQueryParams(
+        format(tempStart, "yyyy-MM-dd"),
+        format(tempEnd, "yyyy-MM-dd")
+      );
       setIsCalendarOpen(false);
     }
   };
 
   const handlePresetClick = (value: DateFilterPreset) => {
-    onPresetChange(value);
-    if (value !== 'custom') {
-      onCustomRangeChange(undefined, undefined);
-    }
+    const { since: newSince, till: newTill } = getDateRangeForPreset(value);
+    updateQueryParams(newSince, newTill);
   };
+
+  // Determine if we're in a custom range (not matching any preset)
+  const isCustomRange = since && till && !presets.some((preset) => {
+    const range = getDateRangeForPreset(preset.value);
+    return range.since === since && range.till === till;
+  });
+
+  // Determine active preset
+  const activePreset = presets.find((preset) => {
+    const range = getDateRangeForPreset(preset.value);
+    return range.since === since && range.till === till;
+  })?.value;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {presets.map((item) => (
         <Button
           key={item.value}
-          variant={preset === item.value ? 'default' : 'outline'}
+          variant={activePreset === item.value ? 'default' : 'outline'}
           size="sm"
           onClick={() => handlePresetClick(item.value)}
           className={cn(
             'transition-all',
-            preset === item.value && 'shadow-md'
+            activePreset === item.value && 'shadow-md'
           )}
         >
           {item.label}
@@ -70,16 +102,16 @@ export function DateFilter({
       <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant={preset === 'custom' ? 'default' : 'outline'}
+            variant={isCustomRange ? 'default' : 'outline'}
             size="sm"
             className={cn(
               'transition-all',
-              preset === 'custom' && 'shadow-md'
+              isCustomRange && 'shadow-md'
             )}
           >
             <CalendarBlank className="w-4 h-4 mr-2" />
-            {preset === 'custom'
-              ? getDateRangeLabel('custom', customStart, customEnd)
+            {isCustomRange && since && till
+              ? `${format(new Date(since), 'MMM d, yyyy')} - ${format(new Date(till), 'MMM d, yyyy')}`
               : 'Custom Range'}
           </Button>
         </PopoverTrigger>

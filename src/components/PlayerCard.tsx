@@ -1,9 +1,9 @@
-import { PlayerStats } from '@/lib/types';
-import { Card } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Crown, Medal, Trophy } from '@phosphor-icons/react';
-import { motion } from 'framer-motion';
+import { PlayerStats } from "@/lib/types";
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Crown, Medal, Trophy } from "@phosphor-icons/react";
+import { motion } from "framer-motion";
 
 interface PlayerCardProps {
   player: PlayerStats;
@@ -54,11 +54,15 @@ export function PlayerCard({ player, rank, index }: PlayerCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
-      <Card className="p-6 hover:shadow-lg transition-shadow duration-200 relative overflow-hidden">
+      <Card
+        className={`p-6 hover:shadow-lg transition-shadow duration-200 relative overflow-hidden ${
+          rank === 1 ? "top-player-glow" : ""
+        }`}
+      >
         {rank === 1 && (
           <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl -z-10" />
         )}
-        
+
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12 ring-2 ring-border">
@@ -68,7 +72,8 @@ export function PlayerCard({ player, rank, index }: PlayerCardProps) {
             <div>
               <h3 className="font-medium text-lg">{player.username}</h3>
               <p className="text-sm text-muted-foreground">
-                {player.gamesPlayed} {player.gamesPlayed === 1 ? 'game' : 'games'}
+                {player.gamesPlayed}{" "}
+                {player.gamesPlayed === 1 ? "game" : "games"}
               </p>
             </div>
           </div>
@@ -77,12 +82,12 @@ export function PlayerCard({ player, rank, index }: PlayerCardProps) {
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Win Rate</span>
-            <span className="text-2xl font-bold tabular-nums">
-              {player.winPercentage.toFixed(1)}%
+            <span className="text-sm text-muted-foreground">Elo Rating</span>
+            <span className="text-3xl font-bold tabular-nums">
+              {player.eloRating}
             </span>
           </div>
-          
+
           <div className="grid grid-cols-3 gap-2 pt-2 border-t">
             <div className="text-center">
               <div className="text-xs text-muted-foreground">Wins</div>

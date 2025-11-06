@@ -3,6 +3,10 @@ export interface Game {
   players: string[];
 }
 
+export interface GameWithEloChanges extends Game {
+  eloChanges: number[];
+}
+
 export interface PlayerStats {
   username: string;
   gamesPlayed: number;
@@ -11,6 +15,7 @@ export interface PlayerStats {
   losses: number;
   totalScore: number;
   winPercentage: number;
+  eloRating: number;
   avatarUrl: string;
 }
 

@@ -1,27 +1,38 @@
-import { useState, useMemo } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useGameData } from '@/hooks/use-game-data';
-import { DateFilter } from '@/components/DateFilter';
-import { Leaderboard } from '@/components/Leaderboard';
-import { GameHistory } from '@/components/GameHistory';
-import { calculatePlayerStats, filterGamesByDateRange } from '@/lib/stats';
-import { DateFilterPreset } from '@/lib/types';
-import { Trophy, ListBullets } from '@phosphor-icons/react';
+import { useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useGameData } from "@/hooks/use-game-data";
+import { useQueryParams } from "@/hooks/use-query-params";
+import { DateFilter } from "@/components/DateFilter";
+import { Leaderboard } from "@/components/Leaderboard";
+import { GameHistory } from "@/components/GameHistory";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  calculatePlayerStats,
+  filterGamesByDateRange,
+  calculateGamesWithEloChanges,
+} from "@/lib/stats";
+import { Trophy, ListBullets, Heart } from "@phosphor-icons/react";
 
 function App() {
   const { games, loading, error } = useGameData();
-  const [datePreset, setDatePreset] = useState<DateFilterPreset>('all-time');
-  const [customStart, setCustomStart] = useState<Date | undefined>();
-  const [customEnd, setCustomEnd] = useState<Date | undefined>();
+  const searchParams = useQueryParams();
+
+  // Get date range from URL query params
+  const since = searchParams.get("since");
+  const till = searchParams.get("till");
 
   const filteredGames = useMemo(() => {
-    return filterGamesByDateRange(games, datePreset, customStart, customEnd);
-  }, [games, datePreset, customStart, customEnd]);
+    return filterGamesByDateRange(games, since, till);
+  }, [games, since, till]);
 
   const playerStats = useMemo(() => {
     return calculatePlayerStats(filteredGames);
+  }, [filteredGames]);
+
+  const gamesWithEloChanges = useMemo(() => {
+    return calculateGamesWithEloChanges(filteredGames);
   }, [filteredGames]);
 
   if (loading) {
@@ -60,13 +71,16 @@ function App() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 tracking-tight">
-            UNO Scoreboard
-          </h1>
-          <p className="text-muted-foreground">
-            Track your UNO game statistics and rankings
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2 tracking-tight">
+              UNO Scoreboard
+            </h1>
+            <p className="text-muted-foreground">
+              Track your UNO game statistics and rankings
+            </p>
+          </div>
+          <ThemeToggle />
         </div>
 
         <Card className="p-6 mb-8">
@@ -74,16 +88,7 @@ function App() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
               Filter by Date
             </h2>
-            <DateFilter
-              preset={datePreset}
-              onPresetChange={setDatePreset}
-              customStart={customStart}
-              customEnd={customEnd}
-              onCustomRangeChange={(start, end) => {
-                setCustomStart(start);
-                setCustomEnd(end);
-              }}
-            />
+            <DateFilter since={since} till={till} />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
@@ -100,15 +105,17 @@ function App() {
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Most Wins</div>
+              <div className="text-sm text-muted-foreground">Top Player</div>
               <div className="text-base font-semibold truncate">
-                {playerStats[0]?.username || '-'}
+                {playerStats[0]?.username || "-"}
               </div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Top Win Rate</div>
+              <div className="text-sm text-muted-foreground">
+                Top Elo Rating
+              </div>
               <div className="text-base font-semibold tabular-nums">
-                {playerStats[0]?.winPercentage.toFixed(1) || '0'}%
+                {playerStats[0]?.eloRating || "-"}
               </div>
             </div>
           </div>
@@ -116,7 +123,10 @@ function App() {
 
         <Tabs defaultValue="leaderboard" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="leaderboard" className="flex items-center gap-2">
+            <TabsTrigger
+              value="leaderboard"
+              className="flex items-center gap-2"
+            >
               <Trophy className="w-4 h-4" />
               Leaderboard
             </TabsTrigger>
@@ -131,9 +141,36 @@ function App() {
           </TabsContent>
 
           <TabsContent value="history">
-            <GameHistory games={filteredGames} />
+            <GameHistory games={gamesWithEloChanges} />
           </TabsContent>
         </Tabs>
+
+        {/* Footer */}
+        <footer className="mt-16 pb-8 text-center space-y-2">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span>Made with</span>
+            <Heart weight="fill" className="w-4 h-4 text-red-500" />
+            <span>by</span>
+            <a
+              href="https://github.com/rithviknishad"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground hover:underline transition-colors"
+            >
+              @rithviknishad
+            </a>
+          </div>
+          <div className="text-sm">
+            <a
+              href="https://github.com/rithviknishad/uno-scoreboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
+            >
+              Contribute on GitHub
+            </a>
+          </div>
+        </footer>
       </div>
     </div>
   );
