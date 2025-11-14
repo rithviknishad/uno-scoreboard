@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { GameWithEloChanges } from "@/lib/types";
+import { GameWithRatingChanges } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { useQueryParams } from "@/hooks/use-query-params";
 
 interface GameHistoryProps {
-  games: GameWithEloChanges[];
+  games: GameWithRatingChanges[];
 }
 
 export function GameHistory({ games }: GameHistoryProps) {
@@ -250,9 +250,9 @@ export function GameHistory({ games }: GameHistoryProps) {
 
           <div className="space-y-3">
             {game.players.map((username, playerIndex) => {
-              const eloChange = game.eloChanges[playerIndex];
-              const isPositive = eloChange > 0;
-              const isNegative = eloChange < 0;
+              const ratingChange = game.ratingChanges[playerIndex];
+              const isPositive = ratingChange > 0;
+              const isNegative = ratingChange < 0;
 
               return (
                 <div
@@ -290,7 +290,7 @@ export function GameHistory({ games }: GameHistoryProps) {
                       )}
                       <span>
                         {isPositive && "+"}
-                        {Math.round(eloChange)}
+                        {Math.round(ratingChange)}
                       </span>
                     </div>
                     {getPositionBadge(playerIndex, game.players.length)}

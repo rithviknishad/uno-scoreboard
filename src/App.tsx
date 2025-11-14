@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   calculatePlayerStats,
   filterGamesByDateRange,
-  calculateGamesWithEloChanges,
+  calculateGamesWithRatingChanges,
 } from "@/lib/stats";
 import { Trophy, ListBullets, Heart } from "@phosphor-icons/react";
 
@@ -31,8 +31,8 @@ function App() {
     return calculatePlayerStats(filteredGames);
   }, [filteredGames]);
 
-  const gamesWithEloChanges = useMemo(() => {
-    return calculateGamesWithEloChanges(filteredGames);
+  const gamesWithRatingChanges = useMemo(() => {
+    return calculateGamesWithRatingChanges(filteredGames);
   }, [filteredGames]);
 
   if (loading) {
@@ -112,10 +112,10 @@ function App() {
             </div>
             <div>
               <div className="text-sm text-muted-foreground">
-                Top Elo Rating
+                Top Skill Rating
               </div>
               <div className="text-base font-semibold tabular-nums">
-                {playerStats[0]?.eloRating || "-"}
+                {playerStats[0]?.skillRating || "-"}
               </div>
             </div>
           </div>
@@ -141,7 +141,7 @@ function App() {
           </TabsContent>
 
           <TabsContent value="history">
-            <GameHistory games={gamesWithEloChanges} />
+            <GameHistory games={gamesWithRatingChanges} />
           </TabsContent>
         </Tabs>
 

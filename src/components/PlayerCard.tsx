@@ -82,9 +82,9 @@ export function PlayerCard({ player, rank, index }: PlayerCardProps) {
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Elo Rating</span>
+            <span className="text-sm text-muted-foreground">Skill Rating</span>
             <span className="text-3xl font-bold tabular-nums">
-              {player.eloRating}
+              {player.skillRating}
             </span>
           </div>
 

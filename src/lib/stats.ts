@@ -1,6 +1,6 @@
 import {
   Game,
-  GameWithEloChanges,
+  GameWithRatingChanges,
   PlayerStats,
   DateFilterPreset,
 } from "./types";
@@ -13,47 +13,14 @@ import {
   startOfYear,
   format,
 } from "date-fns";
-
-// Elo rating constants
-const INITIAL_ELO = 1500;
-const K_FACTOR = 32;
+import { rating, rate, ordinal, Rating } from "openskill";
 
 /**
- * Calculate expected score for a player in Elo system
- * @param playerRating - Current player's Elo rating
- * @param opponentRating - Opponent's Elo rating
- * @returns Expected score (probability of winning) between 0 and 1
- */
-function calculateExpectedScore(
-  playerRating: number,
-  opponentRating: number
-): number {
-  return 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
-}
-
-/**
- * Calculate new Elo rating after a game
- * @param currentRating - Player's current Elo rating
- * @param expectedScore - Expected score from calculateExpectedScore
- * @param actualScore - Actual score (1 for win, 0.5 for draw/middle positions, 0 for loss)
- * @param kFactor - K-factor for rating adjustment (higher = more volatile)
- * @returns New Elo rating
- */
-function calculateNewElo(
-  currentRating: number,
-  expectedScore: number,
-  actualScore: number,
-  kFactor: number = K_FACTOR
-): number {
-  return currentRating + kFactor * (actualScore - expectedScore);
-}
-
-/**
- * Calculate Elo ratings for all players based on game history
+ * Calculate skill ratings for all players based on game history using OpenSkill (TrueSkill2)
  * Games are processed in chronological order to simulate rating evolution
  */
-function calculateEloRatings(games: Game[]): Map<string, number> {
-  const eloRatings = new Map<string, number>();
+function calculateSkillRatings(games: Game[]): Map<string, Rating> {
+  const skillRatings = new Map<string, Rating>();
 
   // Sort games chronologically
   const sortedGames = [...games].sort(
@@ -61,144 +28,81 @@ function calculateEloRatings(games: Game[]): Map<string, number> {
   );
 
   sortedGames.forEach((game) => {
-    const numPlayers = game.players.length;
-
     // Initialize ratings for new players
     game.players.forEach((username) => {
-      if (!eloRatings.has(username)) {
-        eloRatings.set(username, INITIAL_ELO);
+      if (!skillRatings.has(username)) {
+        skillRatings.set(username, rating());
       }
     });
 
-    // Calculate average opponent rating for each player
-    const currentRatings = game.players.map(
-      (username) => eloRatings.get(username)!
-    );
-    const newRatings: number[] = [];
+    // Prepare teams (each player is their own team in UNO)
+    const teams = game.players.map((username) => [skillRatings.get(username)!]);
+    
+    // Ranks based on placement (1 = winner, 2 = second, etc.)
+    const ranks = game.players.map((_, index) => index + 1);
 
-    game.players.forEach((username, index) => {
-      const playerRating = currentRatings[index];
-
-      // Calculate average rating of all opponents
-      const opponentRatings = currentRatings.filter((_, i) => i !== index);
-      const avgOpponentRating =
-        opponentRatings.reduce((sum, r) => sum + r, 0) / opponentRatings.length;
-
-      // Calculate expected score against average opponent
-      const expectedScore = calculateExpectedScore(
-        playerRating,
-        avgOpponentRating
-      );
-
-      // Determine actual score based on placement
-      let actualScore: number;
-      if (index === 0) {
-        // Winner gets full points
-        actualScore = 1;
-      } else if (index === numPlayers - 1) {
-        // Last place gets 0 points
-        actualScore = 0;
-      } else {
-        // Middle positions get partial points based on placement
-        // Linear interpolation between 1 (first) and 0 (last)
-        actualScore = 1 - index / (numPlayers - 1);
-      }
-
-      // Calculate new rating
-      const newRating = calculateNewElo(
-        playerRating,
-        expectedScore,
-        actualScore
-      );
-      newRatings.push(newRating);
-    });
+    // Calculate new ratings
+    const newRatings = rate(teams, { rank: ranks });
 
     // Update all ratings after processing the game
     game.players.forEach((username, index) => {
-      eloRatings.set(username, newRatings[index]);
+      skillRatings.set(username, newRatings[index][0]);
     });
   });
 
-  return eloRatings;
+  return skillRatings;
 }
 
 /**
- * Calculate Elo rating changes for each player in each game
- * Returns games with their corresponding Elo changes
+ * Calculate skill rating changes for each player in each game
+ * Returns games with their corresponding rating changes
  */
-export function calculateGamesWithEloChanges(
+export function calculateGamesWithRatingChanges(
   games: Game[]
-): GameWithEloChanges[] {
-  const eloRatings = new Map<string, number>();
+): GameWithRatingChanges[] {
+  const skillRatings = new Map<string, Rating>();
 
   // Sort games chronologically
   const sortedGames = [...games].sort(
     (a, b) => new Date(a.played_at).getTime() - new Date(b.played_at).getTime()
   );
 
-  const gamesWithChanges: GameWithEloChanges[] = sortedGames.map((game) => {
-    const numPlayers = game.players.length;
-
+  const gamesWithChanges: GameWithRatingChanges[] = sortedGames.map((game) => {
     // Initialize ratings for new players
     game.players.forEach((username) => {
-      if (!eloRatings.has(username)) {
-        eloRatings.set(username, INITIAL_ELO);
+      if (!skillRatings.has(username)) {
+        skillRatings.set(username, rating());
       }
     });
 
-    // Calculate average opponent rating for each player
-    const currentRatings = game.players.map(
-      (username) => eloRatings.get(username)!
+    // Store current conservative ratings before update
+    const currentConservativeRatings = game.players.map((username) =>
+      ordinal(skillRatings.get(username)!)
     );
-    const newRatings: number[] = [];
-    const eloChanges: number[] = [];
 
-    game.players.forEach((username, index) => {
-      const playerRating = currentRatings[index];
+    // Prepare teams (each player is their own team in UNO)
+    const teams = game.players.map((username) => [skillRatings.get(username)!]);
+    
+    // Ranks based on placement (1 = winner, 2 = second, etc.)
+    const ranks = game.players.map((_, index) => index + 1);
 
-      // Calculate average rating of all opponents
-      const opponentRatings = currentRatings.filter((_, i) => i !== index);
-      const avgOpponentRating =
-        opponentRatings.reduce((sum, r) => sum + r, 0) / opponentRatings.length;
+    // Calculate new ratings
+    const newRatings = rate(teams, { rank: ranks });
 
-      // Calculate expected score against average opponent
-      const expectedScore = calculateExpectedScore(
-        playerRating,
-        avgOpponentRating
-      );
-
-      // Determine actual score based on placement
-      let actualScore: number;
-      if (index === 0) {
-        // Winner gets full points
-        actualScore = 1;
-      } else if (index === numPlayers - 1) {
-        // Last place gets 0 points
-        actualScore = 0;
-      } else {
-        // Middle positions get partial points based on placement
-        // Linear interpolation between 1 (first) and 0 (last)
-        actualScore = 1 - index / (numPlayers - 1);
-      }
-
-      // Calculate new rating
-      const newRating = calculateNewElo(
-        playerRating,
-        expectedScore,
-        actualScore
-      );
-      newRatings.push(newRating);
-      eloChanges.push(newRating - playerRating);
+    // Calculate rating changes (conservative estimate: μ - 3σ)
+    const ratingChanges = game.players.map((username, index) => {
+      const newConservativeRating = ordinal(newRatings[index][0]);
+      return newConservativeRating - currentConservativeRatings[index];
     });
 
     // Update all ratings after processing the game
     game.players.forEach((username, index) => {
-      eloRatings.set(username, newRatings[index]);
+      skillRatings.set(username, newRatings[index][0]);
     });
 
     return {
       ...game,
-      eloChanges,
+      ratingChanges,
     };
   });
 
@@ -244,8 +148,8 @@ export function calculatePlayerStats(games: Game[]): PlayerStats[] {
     });
   });
 
-  // Calculate Elo ratings
-  const eloRatings = calculateEloRatings(games);
+  // Calculate skill ratings using OpenSkill
+  const skillRatings = calculateSkillRatings(games);
 
   const playerStats: PlayerStats[] = Array.from(playerMap.entries()).map(
     ([username, stats]) => ({
@@ -256,15 +160,15 @@ export function calculatePlayerStats(games: Game[]): PlayerStats[] {
       losses: stats.losses,
       totalScore: stats.totalScore,
       winPercentage: (stats.totalScore / stats.gamesPlayed) * 100,
-      eloRating: Math.round(eloRatings.get(username) || INITIAL_ELO),
+      skillRating: Math.round(ordinal(skillRatings.get(username) || rating())),
       avatarUrl: `https://github.com/${username}.png`,
     })
   );
 
-  // Sort by Elo rating (highest first), then by username for ties
+  // Sort by skill rating (highest first), then by username for ties
   return playerStats.sort((a, b) => {
-    if (b.eloRating !== a.eloRating) {
-      return b.eloRating - a.eloRating;
+    if (b.skillRating !== a.skillRating) {
+      return b.skillRating - a.skillRating;
     }
     return a.username.localeCompare(b.username);
   });
