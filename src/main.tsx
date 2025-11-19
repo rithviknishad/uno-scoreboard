@@ -12,7 +12,7 @@ import "./index.css"
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary FallbackComponent={ErrorFallback}>
-    <ThemeProvider defaultTheme="light">
+    <ThemeProvider defaultTheme="dark">
       <App />
     </ThemeProvider>
    </ErrorBoundary>
