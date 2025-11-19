@@ -1,6 +1,6 @@
 # Planning Guide
 
-A web application that displays UNO game statistics and leaderboards by reading gameplay data from a static JSON file, showing player rankings based on win percentages with GitHub avatars.
+A web application that displays game statistics and leaderboards by reading gameplay data from a static JSON file, showing player rankings based on win percentages with GitHub avatars.
 
 **Experience Qualities**: 
 1. **Clear**: Statistics and rankings should be immediately understandable with minimal cognitive load
@@ -52,7 +52,7 @@ A web application that displays UNO game statistics and leaderboards by reading 
 The design should feel competitive and energetic like a sports scoreboard, with bold typography and clear data visualization that makes rankings immediately scannable, using a rich interface with card-based layouts and vibrant accent colors to celebrate winners.
 
 ## Color Selection
-Triadic color scheme - Using vibrant, high-energy colors to create a playful yet competitive atmosphere that reflects the fun nature of UNO.
+Triadic color scheme - Using vibrant, high-energy colors to create a playful yet competitive atmosphere that reflects the fun nature of competitive gaming.
 
 - **Primary Color**: Bold Blue (oklch(0.55 0.18 250)) - Represents trust and competition, used for primary actions and top rankings
 - **Secondary Colors**: 

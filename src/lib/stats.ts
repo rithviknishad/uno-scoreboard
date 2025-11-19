@@ -35,7 +35,7 @@ function calculateSkillRatings(games: Game[]): Map<string, Rating> {
       }
     });
 
-    // Prepare teams (each player is their own team in UNO)
+    // Prepare teams (each player is their own team)
     const teams = game.players.map((username) => [skillRatings.get(username)!]);
     
     // Ranks based on placement (1 = winner, 2 = second, etc.)
@@ -80,7 +80,7 @@ export function calculateGamesWithRatingChanges(
       ordinal(skillRatings.get(username)!)
     );
 
-    // Prepare teams (each player is their own team in UNO)
+    // Prepare teams (each player is their own team)
     const teams = game.players.map((username) => [skillRatings.get(username)!]);
     
     // Ranks based on placement (1 = winner, 2 = second, etc.)
