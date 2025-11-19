@@ -121,7 +121,7 @@ function App() {
           </div>
         </Card>
 
-        <Tabs defaultValue="leaderboard" className="space-y-6">
+        <Tabs defaultValue="history" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger
               value="leaderboard"
