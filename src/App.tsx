@@ -74,10 +74,10 @@ function App() {
         <div className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="text-4xl font-bold mb-2 tracking-tight">
-              UNO Scoreboard
+              Game Scoreboard
             </h1>
             <p className="text-muted-foreground">
-              Track your UNO game statistics and rankings
+              Track your game statistics and rankings
             </p>
           </div>
           <ThemeToggle />
@@ -162,7 +162,7 @@ function App() {
           </div>
           <div className="text-sm">
             <a
-              href="https://github.com/rithviknishad/uno-scoreboard"
+              href="https://github.com/rithviknishad/game-scoreboard"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground hover:underline transition-colors"
